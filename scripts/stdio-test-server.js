@@ -2,8 +2,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { createHarnessServer } from '../../src/server.js';
-import { createSubprocessRunner } from '../../src/subprocess/runner.js';
+import { createHarnessServer } from '../src/server.js';
+import { createSubprocessRunner } from '../src/subprocess/runner.js';
 
 const realRunner = createSubprocessRunner();
 

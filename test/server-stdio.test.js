@@ -8,7 +8,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { createSessionWorkspace, writeArtifactFiles } from './helpers/repos.js';
 
 const repoRoot = process.cwd();
-const serverEntry = `${repoRoot}/test/helpers/stdio-test-server.js`;
+const serverEntry = `${repoRoot}/scripts/stdio-test-server.js`;
 
 test('stdio server keeps diagnostics off stdout before protocol traffic', async () => {
   const workspace = await createSessionWorkspace();
@@ -24,8 +24,11 @@ test('stdio server keeps diagnostics off stdout before protocol traffic', async 
   const stdoutChunks = [];
   child.stdout.on('data', (chunk) => stdoutChunks.push(chunk));
   await new Promise((resolve) => setTimeout(resolve, 150));
+  const exitPromise = once(child, 'exit');
   child.kill('SIGTERM');
-  await once(child, 'exit');
+  if (child.exitCode === null) {
+    await exitPromise;
+  }
 
   assert.equal(Buffer.concat(stdoutChunks).length, 0);
 });
