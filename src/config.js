@@ -87,7 +87,17 @@ export async function loadConfig({ configPath }) {
     throw error;
   });
 
-  const parsed = configSchema.parse(JSON.parse(raw));
+  let parsed;
+  try {
+    parsed = configSchema.parse(JSON.parse(raw));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new HarnessError('E_CONFIG_INVALID', 'Configuration file validation failed.', {
+        issues: error.issues,
+      });
+    }
+    throw error;
+  }
   for (const [alias, repo] of Object.entries(parsed.repositories)) {
     ensureAbsolute(repo.rootPath, `${alias}.rootPath`);
   }

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { isAbsolute, relative, resolve } from 'node:path';
 import * as z from 'zod/v4';
 import { HarnessError } from '../errors.js';
 import { normalizeRelativePath } from '../filesystem/safe-reader.js';
@@ -33,10 +33,27 @@ const manifestSchema = z.object({
 });
 
 export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCatalog, toolkitService }) {
+  function resolveArtifactPath(relativeArtifactPath) {
+    const absoluteArtifactPath = resolve(artifactsRootPath, relativeArtifactPath);
+    const relativeToRoot = relative(resolve(artifactsRootPath), absoluteArtifactPath);
+    const escapesRoot =
+      relativeToRoot === '..' ||
+      relativeToRoot.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) ||
+      isAbsolute(relativeToRoot);
+    if (escapesRoot) {
+      throw new HarnessError(
+        'E_ARTIFACT_PATH_INVALID',
+        'Artifact paths must remain within the approved artifact root.',
+        { relativeArtifactPath }
+      );
+    }
+    return absoluteArtifactPath;
+  }
+
   async function validateArtifactReferences({ artifactRelativePath, manifestRelativePath }) {
     const artifactPath = normalizeRelativePath(artifactRelativePath);
     const manifestPath = normalizeRelativePath(manifestRelativePath);
-    const manifestText = await readFile(resolve(artifactsRootPath, manifestPath), 'utf8').catch((error) => {
+    const manifestText = await readFile(resolveArtifactPath(manifestPath), 'utf8').catch((error) => {
       if (error?.code === 'ENOENT') {
         throw new HarnessError('E_ARTIFACT_MANIFEST_NOT_FOUND', 'Artifact reference manifest does not exist.', {
           manifestRelativePath: manifestPath,
@@ -45,7 +62,7 @@ export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCa
       throw error;
     });
 
-    await readFile(resolve(artifactsRootPath, artifactPath), 'utf8').catch((error) => {
+    await readFile(resolveArtifactPath(artifactPath), 'utf8').catch((error) => {
       if (error?.code === 'ENOENT') {
         throw new HarnessError('E_ARTIFACT_NOT_FOUND', 'Artifact markdown file does not exist.', {
           artifactRelativePath: artifactPath,

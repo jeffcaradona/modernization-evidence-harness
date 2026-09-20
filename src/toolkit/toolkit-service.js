@@ -1,7 +1,23 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { HarnessError } from '../errors.js';
+
+function assertContained(rootPath, targetPath) {
+  const relativeTarget = relative(resolve(rootPath), resolve(targetPath));
+  const escapesRoot =
+    relativeTarget === '..' ||
+    relativeTarget.startsWith('../') ||
+    relativeTarget.startsWith('..\\') ||
+    isAbsolute(relativeTarget);
+  if (escapesRoot) {
+    throw new HarnessError(
+      'E_TOOLKIT_PATH_INVALID',
+      'Toolkit index paths must remain within the approved Toolkit root.',
+      { targetPath }
+    );
+  }
+}
 
 export async function createToolkitService({ toolkitRootPath, toolkitIndexPath }) {
   if (!toolkitRootPath || !toolkitIndexPath) {
@@ -32,8 +48,10 @@ export async function createToolkitService({ toolkitRootPath, toolkitIndexPath }
       if (!document) return null;
       const reference = (document.references ?? []).find((item) => item.referenceId === referenceId);
       if (!reference) return null;
+      const absoluteDocumentPath = resolve(toolkitRootPath, documentPath);
+      assertContained(toolkitRootPath, absoluteDocumentPath);
       const documentBody = await readFile(
-        resolve(toolkitRootPath, documentPath),
+        absoluteDocumentPath,
         'utf8'
       ).catch(() => null);
       if (documentBody === null) {
