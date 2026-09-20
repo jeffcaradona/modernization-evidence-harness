@@ -32,12 +32,19 @@ export async function createToolkitService({ toolkitRootPath, toolkitIndexPath }
       if (!document) return null;
       const reference = (document.references ?? []).find((item) => item.referenceId === referenceId);
       if (!reference) return null;
-      const documentBody = await readFile(resolve(toolkitRootPath, documentPath), 'utf8').catch(
-        () => null
-      );
-      const documentHash = documentBody
-        ? createHash('sha256').update(documentBody).digest('hex')
-        : document.documentHash;
+      const documentBody = await readFile(
+        resolve(toolkitRootPath, documentPath),
+        'utf8'
+      ).catch(() => null);
+      if (documentBody === null) {
+        return {
+          documentPath,
+          documentHash: null,
+          reference,
+          unreadable: true,
+        };
+      }
+      const documentHash = createHash('sha256').update(documentBody).digest('hex');
       return {
         documentPath,
         documentHash,

@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import * as z from 'zod/v4';
 import { HarnessError } from './errors.js';
 
@@ -49,8 +49,17 @@ function ensureAbsolute(pathValue, label) {
 }
 
 function assertArtifactsOutsideSources(artifactsRoot, repositories) {
+  const normalizedArtifactsRoot = resolve(artifactsRoot);
   for (const [alias, repo] of Object.entries(repositories)) {
-    if (artifactsRoot.startsWith(repo.rootPath)) {
+    const normalizedRepositoryRoot = resolve(repo.rootPath);
+    const pathFromRepository = relative(
+      normalizedRepositoryRoot,
+      normalizedArtifactsRoot
+    );
+    const artifactsInsideRepository =
+      pathFromRepository === '' ||
+      (!pathFromRepository.startsWith('..') && !isAbsolute(pathFromRepository));
+    if (artifactsInsideRepository) {
       throw new HarnessError(
         'E_CONFIG_INVALID',
         'Artifact output must be outside both approved repository roots.',

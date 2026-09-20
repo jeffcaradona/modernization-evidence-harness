@@ -74,6 +74,10 @@ export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCa
         toolkitChecks.push({ ...reference, status: 'unknown' });
         continue;
       }
+      if (located.unreadable) {
+        toolkitChecks.push({ ...reference, status: 'stale', observedDocumentHash: null });
+        continue;
+      }
       if (located.documentHash !== reference.expectedDocumentHash) {
         toolkitChecks.push({ ...reference, status: 'stale', observedDocumentHash: located.documentHash });
         continue;
@@ -87,7 +91,10 @@ export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCa
       artifactId: manifest.artifactId,
       artifactType: manifest.artifactType,
       status: manifest.status,
-      valid: evidenceChecks.every((item) => item.status === 'ok') && toolkitChecks.every((item) => item.status === 'ok'),
+      valid:
+        evidenceChecks.every((item) => item.status === 'ok') &&
+        !toolkitPending &&
+        toolkitChecks.every((item) => item.status === 'ok'),
       evidenceChecks,
       toolkitChecks,
       toolkitPending,

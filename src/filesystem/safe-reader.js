@@ -77,7 +77,7 @@ export function sliceLines(content, lineStart, lineCount) {
     lineStart,
     lineEnd: lineStart + selected.length - 1,
     fileLineCount: lines.length,
-    truncated: startIndex + lineCount < lines.length,
+    truncated: selected.length < lineCount,
   };
 }
 

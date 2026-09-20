@@ -83,6 +83,8 @@ export async function createHarnessServer({ configPath, env = process.env, runne
     evidenceCatalog,
     toolkitService,
   });
+  const repositoryAliases = Object.keys(config.repositories);
+  const repositoryAliasSchema = z.enum(repositoryAliases);
 
   const server = new McpServer({
     name: 'modernization-evidence-harness',
@@ -104,7 +106,7 @@ export async function createHarnessServer({ configPath, env = process.env, runne
       description:
         'Inventory one approved legacy repository using committed tracked files only. Returns bounded lexical inventory metadata, not semantic analysis.',
       inputSchema: {
-        repositoryAlias: z.enum(['legacy-a', 'legacy-b']),
+        repositoryAlias: repositoryAliasSchema,
       },
     },
     async ({ repositoryAlias }, extra) => {
@@ -145,7 +147,7 @@ export async function createHarnessServer({ configPath, env = process.env, runne
       description:
         'Run a fixed-string ripgrep search against one approved legacy repository and return bounded lexical candidate evidence.',
       inputSchema: {
-        repositoryAlias: z.enum(['legacy-a', 'legacy-b']),
+        repositoryAlias: repositoryAliasSchema,
         query: z.string().min(1).max(200),
       },
     },
@@ -187,7 +189,7 @@ export async function createHarnessServer({ configPath, env = process.env, runne
       description:
         'Read a bounded excerpt from one approved legacy repository and return direct source observation evidence.',
       inputSchema: {
-        repositoryAlias: z.enum(['legacy-a', 'legacy-b']),
+        repositoryAlias: repositoryAliasSchema,
         relativePath: z.string().min(1).max(260),
         lineStart: z.number().int().positive(),
         lineCount: z.number().int().positive().max(config.limits.maxExcerptLines),
