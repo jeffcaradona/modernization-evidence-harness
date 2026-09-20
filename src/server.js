@@ -84,6 +84,12 @@ export async function createHarnessServer({ configPath, env = process.env, runne
     toolkitService,
   });
   const repositoryAliases = Object.keys(config.repositories);
+  if (repositoryAliases.length === 0) {
+    throw new HarnessError(
+      'E_CONFIG_INVALID',
+      'At least one approved repository alias must be configured.'
+    );
+  }
   const repositoryAliasSchema = z.enum(repositoryAliases);
 
   const server = new McpServer({

@@ -47,15 +47,27 @@ export function createRepositoryService({
         exitCode: result.exitCode,
       });
     }
-    return result.stdout.trim();
+    return result.stdout;
   }
 
   async function getHead(rootPath, signal) {
-    return requireSuccessfulGit(rootPath, ['rev-parse', '--verify', 'HEAD'], signal, 'E_REVISION_UNAVAILABLE');
+    const stdout = await requireSuccessfulGit(
+      rootPath,
+      ['rev-parse', '--verify', 'HEAD'],
+      signal,
+      'E_REVISION_UNAVAILABLE'
+    );
+    return stdout.trim();
   }
 
   async function ensureClean(rootPath, signal) {
-    const status = await requireSuccessfulGit(rootPath, ['status', '--porcelain', '--untracked-files=no'], signal);
+    const status = (
+      await requireSuccessfulGit(
+        rootPath,
+        ['status', '--porcelain', '--untracked-files=no'],
+        signal
+      )
+    ).trim();
     if (status) {
       throw new HarnessError('E_REPOSITORY_DIRTY', 'Milestone one only supports committed snapshots without tracked modifications.', {
         status: redactor.redact(status),
@@ -151,12 +163,13 @@ export function createRepositoryService({
   }
 
   async function getBlobHash(repo, relativePath, signal) {
-    return requireSuccessfulGit(
+    const stdout = await requireSuccessfulGit(
       repo.rootPath,
       ['rev-parse', '--verify', createGitPathSpec(repo.commitSha, relativePath)],
       signal,
       'E_SOURCE_IDENTITY_UNAVAILABLE'
     );
+    return stdout.trim();
   }
 
   async function readSourceExcerpt({ repositoryAlias, relativePath, lineStart, lineCount, signal }) {
@@ -261,6 +274,7 @@ export function createRepositoryService({
 
       const evidenceItems = [];
       let omittedSensitiveMatches = 0;
+      const sourceHashByPath = new Map();
       for (const line of result.stdout.split(/\r?\n/)) {
         if (!line.trim()) continue;
         let entry;
@@ -290,7 +304,11 @@ export function createRepositoryService({
           }
           throw error;
         }
-        const sourceHash = await getBlobHash(repo, relativePath, signal);
+        let sourceHash = sourceHashByPath.get(relativePath);
+        if (!sourceHash) {
+          sourceHash = await getBlobHash(repo, relativePath, signal);
+          sourceHashByPath.set(relativePath, sourceHash);
+        }
         const excerptBuffer = Buffer.from(
           redactor.redact(entry.data.lines.text.trimEnd()),
           'utf8'

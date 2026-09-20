@@ -62,6 +62,9 @@ export function sliceLines(content, lineStart, lineCount) {
   }
 
   const lines = content.split(/\r?\n/);
+  if (lines.length > 1 && lines.at(-1) === '') {
+    lines.pop();
+  }
   const startIndex = lineStart - 1;
   if (startIndex >= lines.length) {
     throw new HarnessError('E_LINE_RANGE_INVALID', 'Requested line range is outside the file.', {

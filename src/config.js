@@ -8,10 +8,10 @@ const repositorySchema = z.object({
 });
 
 const configSchema = z.object({
-  repositories: z.object({
-    'legacy-a': repositorySchema,
-    'legacy-b': repositorySchema,
-  }),
+  repositories: z.record(z.string().min(1), repositorySchema).refine(
+    (value) => Object.keys(value).length > 0,
+    'At least one approved repository alias must be configured.'
+  ),
   artifacts: z.object({
     rootPath: z.string().min(1),
   }),

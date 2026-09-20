@@ -101,6 +101,24 @@ test('search preserves original query in execution but redacts reported query an
   assert.deepEqual(result.evidenceItems.map((item) => item.relativePath), ['OrderEntry/SubmitOrder.vb', 'Shared/Workflow.vb']);
 });
 
+test('search rejects malformed rg json output', async () => {
+  const workspace = await createSessionWorkspace();
+  const service = createService(
+    workspace,
+    createRunnerWithSearchOutput('{bad', [])
+  );
+  await service.initialize();
+
+  await assert.rejects(
+    () =>
+      service.searchRepository({
+        repositoryAlias: 'legacy-a',
+        query: 'SubmitOrder',
+      }),
+    { code: 'E_SEARCH_OUTPUT_INVALID' }
+  );
+});
+
 test('same relative path in different repositories yields distinct evidence identities', async () => {
   const workspace = await createSessionWorkspace();
   const runner = createRunnerWithSearchOutput('', []);
