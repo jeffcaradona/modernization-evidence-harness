@@ -8,7 +8,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { createSessionWorkspace, writeArtifactFiles } from './helpers/repos.js';
 
 const repoRoot = process.cwd();
-const serverEntry = `${repoRoot}/src/index.js`;
+const serverEntry = `${repoRoot}/test/helpers/stdio-test-server.js`;
 
 test('stdio server keeps diagnostics off stdout before protocol traffic', async () => {
   const workspace = await createSessionWorkspace();
@@ -30,7 +30,7 @@ test('stdio server keeps diagnostics off stdout before protocol traffic', async 
   assert.equal(Buffer.concat(stdoutChunks).length, 0);
 });
 
-test('stdio MCP server supports discovery, excerpt collection, and artifact validation', async () => {
+test('stdio MCP server supports discovery and the synthetic inventory search excerpt validation workflow', async () => {
   const workspace = await createSessionWorkspace();
   const toolkitIndex = JSON.parse(
     await readFile(`${workspace.toolkitPath}/index.json`, 'utf8')
@@ -59,6 +59,18 @@ test('stdio MCP server supports discovery, excerpt collection, and artifact vali
   assert.equal(inventoryBody.ok, true);
   assert.equal(inventoryBody.inventory.visiblePaths.includes('.env'), false);
 
+  const search = await client.callTool({
+    name: 'search_repository',
+    arguments: {
+      repositoryAlias: 'legacy-a',
+      query: 'SubmitOrder',
+    },
+  });
+  const searchBody = search.structuredContent;
+  assert.equal(searchBody.ok, true);
+  assert.equal(searchBody.evidenceItems.length > 0, true);
+  assert.equal(searchBody.evidenceItems[0].analysisMethod, 'Lexical candidate');
+
   const excerpt = await client.callTool({
     name: 'read_source_excerpt',
     arguments: {
@@ -80,6 +92,9 @@ test('stdio MCP server supports discovery, excerpt collection, and artifact vali
       artifactId: 'REQ-001',
       artifactType: 'requirement',
       status: 'candidate',
+      departmentApproval: {
+        status: 'pending',
+      },
       evidenceReferences: [{ evidenceId: evidence.evidenceId, expectedSourceHash: evidence.sourceHash }],
       toolkitReferences: [
         {
@@ -100,7 +115,9 @@ test('stdio MCP server supports discovery, excerpt collection, and artifact vali
     },
   });
   const validationBody = validation.structuredContent;
-  assert.equal(validationBody.validation.valid, true);
+  assert.equal(validationBody.validation.referenceIntegrity.status, 'verified');
+  assert.equal(validationBody.validation.semanticCorrectness.status, 'unverified');
+  assert.equal(validationBody.validation.departmentApproval.status, 'pending');
 
   await client.close();
   await transport.close();

@@ -1,3 +1,4 @@
+import { posix, win32 } from 'node:path';
 import { HarnessError } from '../errors.js';
 import { ANALYSIS_METHODS, compareEvidence, createEvidenceRecord } from '../evidence/evidence.js';
 import {
@@ -8,6 +9,23 @@ import {
 
 function createGitPathSpec(revision, relativePath) {
   return `${revision}:${relativePath}`;
+}
+
+function usesWindowsPaths(pathValue) {
+  return /^[a-zA-Z]:[\\/]/.test(pathValue) || pathValue.includes('\\');
+}
+
+function resolveSearchResultPath(rootPath, rawPath) {
+  const pathApi = usesWindowsPaths(rootPath) || usesWindowsPaths(rawPath) ? win32 : posix;
+  if (!pathApi.isAbsolute(rawPath)) {
+    return normalizeRelativePath(rawPath.replaceAll('\\', '/'));
+  }
+
+  const relativePath = pathApi.relative(
+    pathApi.resolve(rootPath),
+    pathApi.resolve(rawPath)
+  );
+  return normalizeRelativePath(relativePath.replaceAll('\\', '/'));
 }
 
 export function createRepositoryService({
@@ -58,6 +76,19 @@ export function createRepositoryService({
       'E_REVISION_UNAVAILABLE'
     );
     return stdout.trim();
+  }
+
+  async function listCommittedPaths(repo, signal) {
+    // Search only the pinned tree contents. This keeps untracked working-tree
+    // files out of evidence collection even when the checkout contains local notes
+    // or generated files beside the committed legacy sources.
+    const stdout = await requireSuccessfulGit(
+      repo.rootPath,
+      ['ls-tree', '-r', '-z', '--name-only', repo.commitSha],
+      signal,
+      'E_INVENTORY_FAILED'
+    );
+    return filterVisiblePaths(stdout.split('\0').filter(Boolean));
   }
 
   async function ensureClean(rootPath, signal) {
@@ -133,13 +164,7 @@ export function createRepositoryService({
 
   async function inventorySolution({ repositoryAlias, signal }) {
     return withStableRevision(repositoryAlias, signal, async (repo) => {
-      const stdout = await requireSuccessfulGit(
-        repo.rootPath,
-        ['ls-files', '-z'],
-        signal,
-        'E_INVENTORY_FAILED'
-      );
-      const trackedPaths = filterVisiblePaths(stdout.split('\0').filter(Boolean));
+      const trackedPaths = await listCommittedPaths(repo, signal);
       const visiblePaths = trackedPaths.slice(0, limits.maxInventoryFiles);
       const countsByExtension = Object.create(null);
       for (const filePath of trackedPaths) {
@@ -215,6 +240,16 @@ export function createRepositoryService({
   async function searchRepository({ repositoryAlias, query, signal }) {
     return withStableRevision(repositoryAlias, signal, async (repo) => {
       const reportedQuery = redactor.redact(query);
+      const committedPaths = await listCommittedPaths(repo, signal);
+      if (committedPaths.length === 0) {
+        return {
+          repositoryAlias,
+          evidenceItems: [],
+          reportedQuery,
+          omittedSensitiveMatches: 0,
+          limitations: ['No committed files were available at the pinned repository revision.'],
+        };
+      }
       const result = await runner.run(
         'rg',
         [
@@ -235,7 +270,7 @@ export function createRepositoryService({
           'never',
           '--',
           query,
-          repo.rootPath,
+          ...committedPaths,
         ],
         {
           cwd: repo.rootPath,
@@ -289,12 +324,10 @@ export function createRepositoryService({
           });
         }
         if (entry.type !== 'match') continue;
-        const rawPath = entry.data.path.text.replaceAll('\\', '/');
-        const relativePath = normalizeRelativePath(
-          rawPath.startsWith(repo.rootPath)
-            ? rawPath.slice(repo.rootPath.length + 1)
-            : rawPath
-        );
+        // Ripgrep can report relative paths or platform-native absolute paths.
+        // Normalize with path-aware operations so Windows search output still maps
+        // back to the repository-relative artifact and evidence contracts.
+        const relativePath = resolveSearchResultPath(repo.rootPath, entry.data.path.text);
         try {
           await fileReader.assertSafePath(repo.rootPath, relativePath);
         } catch (error) {

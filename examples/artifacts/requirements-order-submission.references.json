@@ -2,6 +2,9 @@
   "artifactId": "REQ-001",
   "artifactType": "requirement",
   "status": "candidate",
+  "departmentApproval": {
+    "status": "pending"
+  },
   "evidenceReferences": [
     {
       "evidenceId": "ev_example",

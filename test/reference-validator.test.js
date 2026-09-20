@@ -32,6 +32,9 @@ test('reference validator accepts current evidence and toolkit references', asyn
       artifactId: 'REQ-001',
       artifactType: 'requirement',
       status: 'candidate',
+      departmentApproval: {
+        status: 'pending',
+      },
       evidenceReferences: [{ evidenceId: 'ev_1', expectedSourceHash: 'hash-1' }],
       toolkitReferences: [{ documentPath: 'department-toolkit.md', referenceId: 'TK-001', expectedDocumentHash: toolkitService.getIndex().documents[0].documentHash }],
       traceability: [{ requirementId: 'REQ-001', toolkitReferenceId: 'TK-001' }],
@@ -43,9 +46,12 @@ test('reference validator accepts current evidence and toolkit references', asyn
     manifestRelativePath: 'requirements/order-submission.references.json',
   });
 
-  assert.equal(result.valid, true);
-  assert.equal(result.evidenceChecks[0].status, 'ok');
-  assert.equal(result.toolkitChecks[0].status, 'ok');
+  assert.equal(result.referenceIntegrity.status, 'verified');
+  assert.equal(result.referenceIntegrity.valid, true);
+  assert.equal(result.referenceIntegrity.evidenceChecks[0].status, 'ok');
+  assert.equal(result.referenceIntegrity.toolkitChecks[0].status, 'ok');
+  assert.equal(result.semanticCorrectness.status, 'unverified');
+  assert.equal(result.departmentApproval.status, 'pending');
 });
 
 test('reference validator reports stale and unknown references', async () => {
@@ -70,6 +76,9 @@ test('reference validator reports stale and unknown references', async () => {
       artifactId: 'REQ-001',
       artifactType: 'requirement',
       status: 'candidate',
+      departmentApproval: {
+        status: 'not-requested',
+      },
       evidenceReferences: [
         { evidenceId: 'ev_missing', expectedSourceHash: 'hash-x' },
         { evidenceId: 'ev_1', expectedSourceHash: 'hash-1' },
@@ -83,8 +92,11 @@ test('reference validator reports stale and unknown references', async () => {
     manifestRelativePath: 'requirements/order-submission.references.json',
   });
 
-  assert.equal(result.valid, false);
-  assert.equal(result.evidenceChecks[0].status, 'unknown');
-  assert.equal(result.evidenceChecks[1].status, 'stale');
-  assert.equal(result.toolkitChecks[0].status, 'unknown');
+  assert.equal(result.referenceIntegrity.status, 'invalid');
+  assert.equal(result.referenceIntegrity.valid, false);
+  assert.equal(result.referenceIntegrity.evidenceChecks[0].status, 'unknown');
+  assert.equal(result.referenceIntegrity.evidenceChecks[1].status, 'stale');
+  assert.equal(result.referenceIntegrity.toolkitChecks[0].status, 'unknown');
+  assert.equal(result.semanticCorrectness.status, 'unverified');
+  assert.equal(result.departmentApproval.status, 'not-requested');
 });

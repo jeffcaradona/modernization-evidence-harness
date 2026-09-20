@@ -8,6 +8,12 @@ const manifestSchema = z.object({
   artifactId: z.string().min(1),
   artifactType: z.enum(['inventory', 'workflow', 'requirement', 'decision', 'design', 'open-question']),
   status: z.enum(['candidate', 'approved', 'pending']).default('candidate'),
+  departmentApproval: z.object({
+    status: z.enum(['not-requested', 'pending', 'approved']).default('not-requested'),
+    approvedBy: z.string().min(1).optional(),
+    approvedAt: z.string().min(1).optional(),
+    note: z.string().min(1).optional(),
+  }).default({ status: 'not-requested' }),
   evidenceReferences: z.array(
     z.object({
       evidenceId: z.string().min(1),
@@ -103,21 +109,44 @@ export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCa
     }
 
     const toolkitPending = !toolkitService.getIndex();
+    // Keep integrity, semantic truth, and department approval separate.
+    // A clean reference graph only proves that citations resolve to recorded
+    // evidence; it does not prove the interpretation is correct or approved.
+    const referenceIntegrityStatus = toolkitPending
+      ? 'pending'
+      : evidenceChecks.every((item) => item.status === 'ok') &&
+          toolkitChecks.every((item) => item.status === 'ok')
+        ? 'verified'
+        : 'invalid';
 
     return {
       artifactId: manifest.artifactId,
       artifactType: manifest.artifactType,
       status: manifest.status,
-      valid:
-        evidenceChecks.every((item) => item.status === 'ok') &&
-        !toolkitPending &&
-        toolkitChecks.every((item) => item.status === 'ok'),
-      evidenceChecks,
-      toolkitChecks,
-      toolkitPending,
+      referenceIntegrity: {
+        status: referenceIntegrityStatus,
+        valid: referenceIntegrityStatus === 'verified',
+        evidenceChecks,
+        toolkitChecks,
+        toolkitPending,
+        note:
+          'Reference integrity only proves that cited evidence and Toolkit references resolve to the recorded sources for this session.',
+      },
+      semanticCorrectness: {
+        status: 'unverified',
+        note:
+          'The harness does not determine whether an interpretation, requirement, or design is semantically correct.',
+      },
+      departmentApproval: {
+        ...manifest.departmentApproval,
+        note:
+          manifest.departmentApproval.note ??
+          'Department approval is recorded separately from reference integrity and is never manufactured by validation.',
+      },
       limitations: [
         'Validation proves that recorded references exist in the session catalog or Toolkit index.',
         'Validation cannot prove that an interpretation or requirement is correct.',
+        'Validation never manufactures department approval.',
       ],
     };
   }

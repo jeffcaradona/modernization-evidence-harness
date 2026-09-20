@@ -43,7 +43,13 @@ Sample templates live under `templates/artifacts`.
 - that the referenced source hash matches the recorded evidence
 - that each Toolkit reference exists in the configured Toolkit index and matches the recorded document hash
 
-It does **not** prove business correctness.
+Validation returns explicit independent states for:
+
+- `referenceIntegrity`
+- `semanticCorrectness`
+- `departmentApproval`
+
+Only `referenceIntegrity` is evaluated by the harness. It does **not** prove business correctness, and it does **not** manufacture department approval.
 
 ## Toolkit mapping
 
