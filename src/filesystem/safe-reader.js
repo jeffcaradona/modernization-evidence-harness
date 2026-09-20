@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-import { lstat, open, readFile, realpath } from 'node:fs/promises';
+import { lstat, open, realpath } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { HarnessError } from '../errors.js';
 
@@ -102,6 +101,20 @@ export function createSafeFileReader({ redactor, sensitivePathMatcher }) {
 
     const canonicalRoot = await getCanonicalRoot(rootPath);
     const candidatePath = resolve(canonicalRoot, normalized);
+    const pathStat = await lstat(candidatePath).catch((error) => {
+      if (error?.code === 'ENOENT') {
+        throw new HarnessError('E_FILE_NOT_FOUND', 'Requested file does not exist.', {
+          relativePath: normalized,
+        });
+      }
+      throw error;
+    });
+    if (pathStat.isSymbolicLink()) {
+      throw new HarnessError('E_SYMLINK_BLOCKED', 'Symlink paths are excluded from collection.', {
+        relativePath: normalized,
+      });
+    }
+
     let canonicalTarget;
     try {
       canonicalTarget = await realpath(candidatePath);
@@ -117,13 +130,6 @@ export function createSafeFileReader({ redactor, sensitivePathMatcher }) {
     const relativeTarget = relative(canonicalRoot, canonicalTarget);
     if (escapesRoot(relativeTarget)) {
       throw new HarnessError('E_PATH_OUT_OF_ROOT', 'Path escapes the approved repository root.', {
-        relativePath: normalized,
-      });
-    }
-
-    const pathStat = await lstat(candidatePath);
-    if (pathStat.isSymbolicLink()) {
-      throw new HarnessError('E_SYMLINK_BLOCKED', 'Symlink paths are excluded from collection.', {
         relativePath: normalized,
       });
     }
@@ -165,18 +171,10 @@ export function createSafeFileReader({ redactor, sensitivePathMatcher }) {
     }
   }
 
-  async function readAllText({ rootPath, relativePath }) {
-    const contained = await assertContained(rootPath, relativePath);
-    const body = await readFile(contained.canonicalTarget, 'utf8');
-    return {
-      relativePath: contained.normalized,
-      content: body,
-      contentHash: createHash('sha256').update(body).digest('hex'),
-    };
-  }
-
   return {
-    readAllText,
+    assertSafePath(rootPath, relativePath) {
+      return assertContained(rootPath, relativePath);
+    },
     readBoundedText,
   };
 }

@@ -33,7 +33,7 @@ artifacts/
   open-questions/
 ```
 
-Sample templates live under `/home/runner/work/modernization-evidence-harness/modernization-evidence-harness/templates/artifacts`.
+Sample templates live under `templates/artifacts`.
 
 ## Validation scope
 

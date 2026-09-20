@@ -74,7 +74,7 @@ Checks artifact manifests against evidence actually returned in the current sess
 
 ## Synthetic example
 
-The repository includes synthetic VB.NET examples under `/home/runner/work/modernization-evidence-harness/modernization-evidence-harness/examples/synthetic` plus sample artifact templates under `/home/runner/work/modernization-evidence-harness/modernization-evidence-harness/templates/artifacts`.
+The repository includes synthetic VB.NET examples under `examples/synthetic` plus sample artifact templates under `templates/artifacts`.
 
 ## Test
 

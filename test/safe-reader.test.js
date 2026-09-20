@@ -34,7 +34,7 @@ test(
 
     await assert.rejects(
       () => reader.readBoundedText({ rootPath: root, relativePath: 'src/link.txt', maxBytes: 100 }),
-      { code: 'E_PATH_OUT_OF_ROOT' }
+      { code: 'E_SYMLINK_BLOCKED' }
     );
   }
 );

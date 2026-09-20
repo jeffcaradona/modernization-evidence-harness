@@ -162,14 +162,14 @@ export function createRepositoryService({
   async function readSourceExcerpt({ repositoryAlias, relativePath, lineStart, lineCount, signal }) {
     return withStableRevision(repositoryAlias, signal, async (repo) => {
       const normalizedPath = normalizeRelativePath(relativePath);
-      const fullText = await fileReader.readAllText({
+      const boundedText = await fileReader.readBoundedText({
         rootPath: repo.rootPath,
         relativePath: normalizedPath,
+        maxBytes: limits.maxExcerptBytes,
+        signal,
       });
-      const sliced = sliceLines(fullText.content, lineStart, lineCount);
-      const excerptBuffer = Buffer.from(redactor.redact(sliced.excerpt), 'utf8');
-      const limitedExcerpt = excerptBuffer.subarray(0, limits.maxExcerptBytes);
-      const excerpt = limitedExcerpt.toString('utf8');
+      const sliced = sliceLines(boundedText.content, lineStart, lineCount);
+      const excerpt = sliced.excerpt;
       const sourceHash = await getBlobHash(repo, normalizedPath, signal);
       const evidence = createEvidenceRecord({
         repositoryAlias,
@@ -180,10 +180,9 @@ export function createRepositoryService({
         analysisMethod: ANALYSIS_METHODS.DIRECT_SOURCE_OBSERVATION,
         sourceHash,
         excerpt,
-        truncated:
-          sliced.truncated || Buffer.byteLength(excerpt, 'utf8') < excerptBuffer.length,
+        truncated: sliced.truncated || boundedText.truncated,
         omissionReason:
-          sliced.truncated || Buffer.byteLength(excerpt, 'utf8') < excerptBuffer.length
+          sliced.truncated || boundedText.truncated
             ? 'Requested source excerpt was bounded by configured line and byte limits.'
             : null,
         redaction: redactor.describe(),
@@ -283,10 +282,7 @@ export function createRepositoryService({
             : rawPath
         );
         try {
-          await fileReader.readAllText({
-            rootPath: repo.rootPath,
-            relativePath,
-          });
+          await fileReader.assertSafePath(repo.rootPath, relativePath);
         } catch (error) {
           if (error instanceof HarnessError && error.code === 'E_SENSITIVE_PATH') {
             omittedSensitiveMatches += 1;
