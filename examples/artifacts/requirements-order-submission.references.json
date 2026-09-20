@@ -1,0 +1,25 @@
+{
+  "artifactId": "REQ-001",
+  "artifactType": "requirement",
+  "status": "candidate",
+  "evidenceReferences": [
+    {
+      "evidenceId": "ev_example",
+      "expectedSourceHash": "git-blob-sha-placeholder"
+    }
+  ],
+  "toolkitReferences": [
+    {
+      "documentPath": "department-toolkit.md",
+      "referenceId": "TK-001",
+      "expectedDocumentHash": "a5459caaad173e280abe3523469bdbddb683125d4eeecb140818f38bb0090898"
+    }
+  ],
+  "traceability": [
+    {
+      "observedBehavior": "SubmitOrder forwards processing to legacy-b",
+      "requirementId": "REQ-001",
+      "toolkitReferenceId": "TK-001"
+    }
+  ]
+}

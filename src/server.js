@@ -167,7 +167,7 @@ export async function createHarnessServer({ configPath, env = process.env, runne
             measurements: {
               elapsedMs: result.elapsedMs,
               evidenceCount: result.evidenceItems.length,
-              omittedResults: Math.max(0, result.evidenceItems.length - config.limits.maxSearchMatches),
+              omittedResults: result.omittedSensitiveMatches,
             },
             limitations: result.limitations,
           })

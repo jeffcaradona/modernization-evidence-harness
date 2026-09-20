@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "modernization-evidence-harness": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/absolute/path/to/modernization-evidence-harness/src/index.js"
+      ],
+      "env": {
+        "MODERNIZATION_EVIDENCE_HARNESS_CONFIG": "/absolute/path/to/harness.config.local.json"
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { HarnessError } from '../errors.js';
 
 export async function createToolkitService({ toolkitRootPath, toolkitIndexPath }) {
@@ -31,7 +32,9 @@ export async function createToolkitService({ toolkitRootPath, toolkitIndexPath }
       if (!document) return null;
       const reference = (document.references ?? []).find((item) => item.referenceId === referenceId);
       if (!reference) return null;
-      const documentBody = await readFile(new URL(documentPath, `${toolkitRootPath.endsWith('/') ? toolkitRootPath : `${toolkitRootPath}/`}`), 'utf8').catch(() => null);
+      const documentBody = await readFile(resolve(toolkitRootPath, documentPath), 'utf8').catch(
+        () => null
+      );
       const documentHash = documentBody
         ? createHash('sha256').update(documentBody).digest('hex')
         : document.documentHash;

@@ -2,17 +2,10 @@
   "name": "modernization-evidence-harness",
   "version": "0.1.0",
   "description": "Evidence-backed MCP harness for Modernized Node.js Applications",
-  "main": "index.js",
   "scripts": {
     "test": "node --test",
     "start": "node ./src/index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "http://localhost:26831/jeffcaradona/modernization-evidence-harness"
-  },
-  "keywords": [],
-  "author": "",
   "license": "MIT",
   "type": "module",
   "bin": {

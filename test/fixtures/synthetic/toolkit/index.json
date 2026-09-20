@@ -1,0 +1,18 @@
+{
+  "documents": [
+    {
+      "documentPath": "department-toolkit.md",
+      "documentHash": "a5459caaad173e280abe3523469bdbddb683125d4eeecb140818f38bb0090898",
+      "references": [
+        {
+          "referenceId": "TK-001",
+          "title": "Preserve observable workflow boundaries"
+        },
+        {
+          "referenceId": "TK-002",
+          "title": "Record intentional behavior changes"
+        }
+      ]
+    }
+  ]
+}
