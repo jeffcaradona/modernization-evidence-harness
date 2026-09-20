@@ -12,7 +12,7 @@
     "modernization-evidence-harness": "./src/index.js"
   },
   "engines": {
-    "node": ">=22.0.0 <25"
+    "node": ">=22.0.0 <23 || >=24.0.0 <25 || >=26.0.0 <27"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
