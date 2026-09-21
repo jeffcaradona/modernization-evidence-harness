@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Evidence-backed MCP harness for Modernized Node.js Applications",
   "scripts": {
-    "test": "node --test",
+    "test": "node --test --test-timeout=30000 \"test/*.test.js\"",
     "start": "node ./src/index.js"
   },
   "license": "MIT",

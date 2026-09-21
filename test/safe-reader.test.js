@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { createSafeFileReader, createSensitivePathMatcher, normalizeRelativePath } from '../src/filesystem/safe-reader.js';
 import { createRedactor } from '../src/redaction.js';
+import { makeTempDir } from './helpers/repos.js';
 
 test('normalizeRelativePath blocks traversal and option injection', () => {
   assert.throws(() => normalizeRelativePath('../secret.txt'), { code: 'E_PATH_INVALID' });
@@ -21,8 +21,8 @@ test(
   'safe reader rejects symlink escapes and redacts content',
   { skip: process.platform === 'win32' },
   async () => {
-    const root = await mkdtemp(join(tmpdir(), 'safe-reader-'));
-    const outside = await mkdtemp(join(tmpdir(), 'safe-reader-outside-'));
+    const root = await makeTempDir('safe-reader-');
+    const outside = await makeTempDir('safe-reader-outside-');
     await writeFile(join(outside, 'secret.txt'), '******');
     await mkdir(join(root, 'src'), { recursive: true });
     await symlink(join(outside, 'secret.txt'), join(root, 'src', 'link.txt'));
@@ -40,7 +40,7 @@ test(
 );
 
 test('safe reader redacts content and blocks sensitive paths', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'safe-reader-'));
+  const root = await makeTempDir('safe-reader-');
   await writeFile(join(root, 'visible.vb'), 'user id=alice');
   await writeFile(join(root, '.env'), 'DB_PASSWORD=secret');
 

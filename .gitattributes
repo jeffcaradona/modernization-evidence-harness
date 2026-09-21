@@ -1,0 +1,6 @@
+*.md text eol=lf
+*.json text eol=lf
+*.js text eol=lf
+*.vb text eol=lf
+*.vbproj text eol=lf
+*.sln text eol=lf

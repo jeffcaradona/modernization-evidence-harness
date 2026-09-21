@@ -1,11 +1,28 @@
-import { mkdtemp, cp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, cp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { after } from 'node:test';
 
 const execFileAsync = promisify(execFile);
 const fixtureRoot = resolve('test/fixtures/synthetic');
+const trackedTempRoots = [];
+
+// Registered on import so every test file that uses these helpers cleans up its own temp roots.
+after(async () => {
+  const roots = trackedTempRoots.splice(0);
+  await Promise.all(
+    // Git object files are read-only on Windows, so retries cover the EPERM/EBUSY unlink races.
+    roots.map((root) => rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }))
+  );
+});
+
+export async function makeTempDir(prefix) {
+  const root = await mkdtemp(join(tmpdir(), prefix));
+  trackedTempRoots.push(root);
+  return root;
+}
 
 async function git(cwd, ...args) {
   await execFileAsync('git', args, {
@@ -18,7 +35,7 @@ async function git(cwd, ...args) {
 }
 
 async function initCommittedRepo(sourceName) {
-  const root = await mkdtemp(join(tmpdir(), `${sourceName}-`));
+  const root = await makeTempDir(`${sourceName}-`);
   await cp(join(fixtureRoot, sourceName), root, { recursive: true });
   await git(root, 'init');
   await git(root, 'config', 'user.name', 'Test User');
@@ -29,7 +46,7 @@ async function initCommittedRepo(sourceName) {
 }
 
 export async function createSessionWorkspace() {
-  const workspace = await mkdtemp(join(tmpdir(), 'evidence-harness-'));
+  const workspace = await makeTempDir('evidence-harness-');
   const legacyAPath = await initCommittedRepo('legacy-a');
   const legacyBPath = await initCommittedRepo('legacy-b');
   const toolkitPath = join(workspace, 'toolkit');
