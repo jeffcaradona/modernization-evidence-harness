@@ -94,7 +94,7 @@ test('stdio MCP server supports discovery and the synthetic inventory search exc
     manifest: {
       artifactId: 'REQ-001',
       artifactType: 'requirement',
-      status: 'candidate',
+      artifactStatus: 'candidate',
       departmentApproval: {
         status: 'pending',
       },
@@ -118,9 +118,14 @@ test('stdio MCP server supports discovery and the synthetic inventory search exc
     },
   });
   const validationBody = validation.structuredContent;
+  assert.equal(validationBody.validation.artifactStatus, 'candidate');
   assert.equal(validationBody.validation.referenceIntegrity.status, 'verified');
   assert.equal(validationBody.validation.semanticCorrectness.status, 'unverified');
-  assert.equal(validationBody.validation.departmentApproval.status, 'pending');
+  assert.equal(validationBody.validation.departmentApproval.claim.status, 'pending');
+  assert.equal(
+    validationBody.validation.departmentApproval.verification.status,
+    'unverified'
+  );
 
   await client.close();
   await transport.close();

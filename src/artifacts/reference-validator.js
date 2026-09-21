@@ -4,10 +4,13 @@ import * as z from 'zod/v4';
 import { HarnessError } from '../errors.js';
 import { normalizeRelativePath } from '../filesystem/safe-reader.js';
 
+const artifactLifecycleStatusSchema = z.enum(['candidate', 'approved', 'pending']);
+
 const manifestSchema = z.object({
   artifactId: z.string().min(1),
   artifactType: z.enum(['inventory', 'workflow', 'requirement', 'decision', 'design', 'open-question']),
-  status: z.enum(['candidate', 'approved', 'pending']).default('candidate'),
+  artifactStatus: artifactLifecycleStatusSchema.optional(),
+  status: artifactLifecycleStatusSchema.optional(),
   departmentApproval: z.object({
     status: z.enum(['not-requested', 'pending', 'approved']).default('not-requested'),
     approvedBy: z.string().min(1).optional(),
@@ -36,7 +39,18 @@ const manifestSchema = z.object({
       toolkitReferenceId: z.string().optional(),
     })
   ).default([]),
-});
+}).superRefine((value, context) => {
+  if (value.artifactStatus && value.status && value.artifactStatus !== value.status) {
+    context.addIssue({
+      code: 'custom',
+      message: 'artifactStatus and status must match when both are present.',
+      path: ['artifactStatus'],
+    });
+  }
+}).transform((value) => ({
+  ...value,
+  artifactStatus: value.artifactStatus ?? value.status ?? 'candidate',
+}));
 
 export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCatalog, toolkitService }) {
   function resolveArtifactPath(relativeArtifactPath) {
@@ -122,7 +136,7 @@ export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCa
     return {
       artifactId: manifest.artifactId,
       artifactType: manifest.artifactType,
-      status: manifest.status,
+      artifactStatus: manifest.artifactStatus,
       referenceIntegrity: {
         status: referenceIntegrityStatus,
         valid: referenceIntegrityStatus === 'verified',
@@ -138,15 +152,25 @@ export function createArtifactReferenceValidator({ artifactsRootPath, evidenceCa
           'The harness does not determine whether an interpretation, requirement, or design is semantically correct.',
       },
       departmentApproval: {
-        ...manifest.departmentApproval,
-        note:
-          manifest.departmentApproval.note ??
-          'Department approval is recorded separately from reference integrity and is never manufactured by validation.',
+        claim: {
+          status: manifest.departmentApproval.status,
+          approvedBy: manifest.departmentApproval.approvedBy ?? null,
+          approvedAt: manifest.departmentApproval.approvedAt ?? null,
+          note:
+            manifest.departmentApproval.note ??
+            'This approval claim came from an untrusted manifest and is recorded as a claim only.',
+        },
+        verification: {
+          status: 'unverified',
+          source: null,
+          note:
+            'Milestone one has no trusted department-controlled approval source, so validation never upgrades a manifest claim into verified approval.',
+        },
       },
       limitations: [
         'Validation proves that recorded references exist in the session catalog or Toolkit index.',
         'Validation cannot prove that an interpretation or requirement is correct.',
-        'Validation never manufactures department approval.',
+        'Validation never manufactures or verifies department approval from a model-writable manifest alone.',
       ],
     };
   }

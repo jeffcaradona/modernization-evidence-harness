@@ -31,7 +31,7 @@ test('reference validator accepts current evidence and toolkit references', asyn
     manifest: {
       artifactId: 'REQ-001',
       artifactType: 'requirement',
-      status: 'candidate',
+      artifactStatus: 'candidate',
       departmentApproval: {
         status: 'pending',
       },
@@ -50,8 +50,10 @@ test('reference validator accepts current evidence and toolkit references', asyn
   assert.equal(result.referenceIntegrity.valid, true);
   assert.equal(result.referenceIntegrity.evidenceChecks[0].status, 'ok');
   assert.equal(result.referenceIntegrity.toolkitChecks[0].status, 'ok');
+  assert.equal(result.artifactStatus, 'candidate');
   assert.equal(result.semanticCorrectness.status, 'unverified');
-  assert.equal(result.departmentApproval.status, 'pending');
+  assert.equal(result.departmentApproval.claim.status, 'pending');
+  assert.equal(result.departmentApproval.verification.status, 'unverified');
 });
 
 test('reference validator reports stale and unknown references', async () => {
@@ -75,7 +77,7 @@ test('reference validator reports stale and unknown references', async () => {
     manifest: {
       artifactId: 'REQ-001',
       artifactType: 'requirement',
-      status: 'candidate',
+      artifactStatus: 'candidate',
       departmentApproval: {
         status: 'not-requested',
       },
@@ -98,5 +100,56 @@ test('reference validator reports stale and unknown references', async () => {
   assert.equal(result.referenceIntegrity.evidenceChecks[1].status, 'stale');
   assert.equal(result.referenceIntegrity.toolkitChecks[0].status, 'unknown');
   assert.equal(result.semanticCorrectness.status, 'unverified');
-  assert.equal(result.departmentApproval.status, 'not-requested');
+  assert.equal(result.departmentApproval.claim.status, 'not-requested');
+  assert.equal(result.departmentApproval.verification.status, 'unverified');
+});
+
+test('reference validator does not verify department approval from a manifest claim', async () => {
+  const workspace = await createSessionWorkspace();
+  const evidenceCatalog = createEvidenceCatalog();
+  evidenceCatalog.recordAll([{ evidenceId: 'ev_1', sourceHash: 'hash-1' }]);
+  const toolkitService = await createToolkitService({
+    toolkitRootPath: workspace.toolkitPath,
+    toolkitIndexPath: `${workspace.toolkitPath}/index.json`,
+  });
+  const validator = createArtifactReferenceValidator({
+    artifactsRootPath: workspace.artifactsPath,
+    evidenceCatalog,
+    toolkitService,
+  });
+
+  await writeArtifactFiles(workspace.artifactsPath, {
+    markdownRelativePath: 'requirements/claimed-approved.md',
+    markdownBody: '# Claimed approved requirement\n',
+    manifestRelativePath: 'requirements/claimed-approved.references.json',
+    manifest: {
+      artifactId: 'REQ-APPROVED-CLAIM',
+      artifactType: 'requirement',
+      artifactStatus: 'approved',
+      departmentApproval: {
+        status: 'approved',
+        approvedBy: 'department-user',
+        approvedAt: '2026-09-20',
+      },
+      evidenceReferences: [{ evidenceId: 'ev_1', expectedSourceHash: 'hash-1' }],
+      toolkitReferences: [
+        {
+          documentPath: 'department-toolkit.md',
+          referenceId: 'TK-001',
+          expectedDocumentHash: toolkitService.getIndex().documents[0].documentHash,
+        },
+      ],
+    },
+  });
+
+  const result = await validator.validateArtifactReferences({
+    artifactRelativePath: 'requirements/claimed-approved.md',
+    manifestRelativePath: 'requirements/claimed-approved.references.json',
+  });
+
+  assert.equal(result.artifactStatus, 'approved');
+  assert.equal(result.referenceIntegrity.status, 'verified');
+  assert.equal(result.departmentApproval.claim.status, 'approved');
+  assert.equal(result.departmentApproval.verification.status, 'unverified');
+  assert.equal(result.semanticCorrectness.status, 'unverified');
 });

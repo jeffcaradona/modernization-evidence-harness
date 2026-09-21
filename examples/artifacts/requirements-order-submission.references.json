@@ -1,7 +1,7 @@
 {
   "artifactId": "REQ-001",
   "artifactType": "requirement",
-  "status": "candidate",
+  "artifactStatus": "candidate",
   "departmentApproval": {
     "status": "pending"
   },

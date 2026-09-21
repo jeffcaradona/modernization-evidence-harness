@@ -35,6 +35,8 @@ artifacts/
 
 Sample templates live under `templates/artifacts`.
 
+Use `artifactStatus` for the artifact lifecycle state recorded by Copilot or the operator. Do not use it as proof of department approval.
+
 ## Validation scope
 
 `validate_artifact_references` checks:
@@ -48,6 +50,8 @@ Validation returns explicit independent states for:
 - `referenceIntegrity`
 - `semanticCorrectness`
 - `departmentApproval`
+
+`departmentApproval` is split into a manifest-reported claim and a separate verification state. In milestone one, the harness has no trusted department-controlled approval source, so approval claims remain unverified.
 
 Only `referenceIntegrity` is evaluated by the harness. It does **not** prove business correctness, and it does **not** manufacture department approval.
 
