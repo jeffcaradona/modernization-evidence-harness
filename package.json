@@ -1,0 +1,21 @@
+{
+  "name": "modernization-evidence-harness",
+  "version": "0.1.0",
+  "description": "Evidence-backed MCP harness for Modernized Node.js Applications",
+  "scripts": {
+    "test": "node --test --test-timeout=30000 \"test/*.test.js\"",
+    "start": "node ./src/index.js"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "modernization-evidence-harness": "./src/index.js"
+  },
+  "engines": {
+    "node": ">=22.0.0 <23 || >=24.0.0 <25 || >=26.0.0 <27"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.6.5"
+  }
+}

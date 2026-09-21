@@ -1,0 +1,11 @@
+{
+  "artifactId": "REQ-000",
+  "artifactType": "requirement",
+  "artifactStatus": "candidate",
+  "departmentApproval": {
+    "status": "not-requested"
+  },
+  "evidenceReferences": [],
+  "toolkitReferences": [],
+  "traceability": []
+}

@@ -1,0 +1,30 @@
+{
+  "repositories": {
+    "legacy-a": {
+      "rootPath": "C:/absolute/path/to/legacy-a"
+    },
+    "legacy-b": {
+      "rootPath": "C:/absolute/path/to/legacy-b"
+    }
+  },
+  "artifacts": {
+    "rootPath": "C:/absolute/path/to/modernization-artifacts"
+  },
+  "toolkit": {
+    "rootPath": "C:/absolute/path/to/department-toolkit",
+    "indexPath": "C:/absolute/path/to/department-toolkit/index.json"
+  },
+  "redaction": {
+    "secrets": []
+  },
+  "limits": {
+    "maxInventoryFiles": 200,
+    "maxSearchMatches": 20,
+    "maxSearchFileBytes": 262144,
+    "maxExcerptBytes": 16384,
+    "maxExcerptLines": 40,
+    "subprocessTimeoutMs": 15000,
+    "subprocessStdoutBytes": 2097152,
+    "subprocessStderrBytes": 262144
+  }
+}
